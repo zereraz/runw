@@ -10,4 +10,4 @@ simple minimalistic watch for go project
 
 or
 
-`runw main.go main_test.go` // will run main_test.go on change to main.go
+`runw blockchain.go main.go` // will run main.go on change to blockchain.go
