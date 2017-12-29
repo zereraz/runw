@@ -7,3 +7,5 @@ simple minimalistic watch for go project
 
 ## example
 `runw ./src main.go`
+or
+`runw main.go main_test.go` // will run main_test.go on change to main.go
