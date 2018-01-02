@@ -3,10 +3,13 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -26,6 +29,7 @@ func runMainFile(mainFile string) {
 }
 
 func startWatcher(watchPath, mainFile string) {
+	fmt.Println(watchPath, mainFile)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -65,11 +69,55 @@ func startWatcher(watchPath, mainFile string) {
 	<-done
 }
 
+func getAllDirs(currentDir string, dirList []string) []string {
+	curDirList, err := ioutil.ReadDir(currentDir)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	//base case
+	if len(curDirList) == 0 {
+		return dirList
+	}
+
+	newDirList := []string{}
+	for _, file := range curDirList {
+		if file.Name()[0] == '.' {
+			continue
+		}
+		if file.IsDir() {
+			folderPath := path.Join(currentDir, file.Name())
+			// TODO: REFACTOR
+			newDirList = append(newDirList, folderPath)
+			newDirList = append(append(dirList, getAllDirs(folderPath, dirList)...), newDirList...)
+		}
+	}
+
+	return newDirList
+}
+
+func startRecursiveWatcher(watchDir, mainFile string) {
+	dirs := getAllDirs(watchDir, []string{})
+	for _, dir := range dirs {
+		done := make(chan bool)
+		go func() {
+			startWatcher(dir, mainFile)
+			done <- true
+		}()
+		<-done
+	}
+}
+
 func main() {
 	args := os.Args[1:]
 	if len(args) < 2 {
 		log.Fatal(errors.New("Error : arguments empty"))
 	}
-	startWatcher(args[0], args[1])
-	fmt.Println("vim-go")
+	recursiveFlag := flag.Bool("r", false, "recursive watching")
+	flag.Parse()
+	if *recursiveFlag {
+		startRecursiveWatcher(args[1], args[2])
+	} else {
+		startWatcher(args[0], args[1])
+	}
 }
