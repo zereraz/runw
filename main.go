@@ -5,11 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -69,45 +67,24 @@ func watchFiles(mainFile string, dirList []string) {
 	<-done
 }
 
-func getAllDirs(currentDir string, dirList []string) []string {
-	curDirList, err := ioutil.ReadDir(currentDir)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	//base case
-	if len(curDirList) == 0 {
-		return dirList
-	}
-
-	newDirList := []string{}
-	for _, file := range curDirList {
-		if file.Name()[0] == '.' {
-			continue
-		}
-		if file.IsDir() {
-			folderPath := path.Join(currentDir, file.Name())
-			// TODO: REFACTOR
-			newDirList = append(newDirList, folderPath)
-			newDirList = append(append(dirList, getAllDirs(folderPath, dirList)...), newDirList...)
-		}
-	}
-
-	return newDirList
-}
-
 func startRecursiveWatcher(watchDir, mainFile string) {
-	dirs := getAllDirs(watchDir, []string{})
+	initDir := []string{"."}
+	dirs := getAllDirs(watchDir, initDir)
 	watchFiles(mainFile, dirs)
 }
 
 func main() {
 	args := os.Args[1:]
+
 	if len(args) < 2 {
 		log.Fatal(errors.New("Error : arguments empty"))
 	}
+
+	// -r recursive flag for watching all the go files
+	// in any depth of directory
 	recursiveFlag := flag.Bool("r", false, "recursive watching")
 	flag.Parse()
+
 	if *recursiveFlag {
 		startRecursiveWatcher(args[1], args[2])
 	} else {
