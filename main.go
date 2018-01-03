@@ -12,20 +12,28 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// run provided main folder and print the output
 func runMainFile(mainFile string) {
 	cmd := exec.Command("go", "run", mainFile)
+
 	var out bytes.Buffer
 	var errBuf bytes.Buffer
+
 	cmd.Stdout = &out
 	cmd.Stderr = &errBuf
 	err := cmd.Run()
+
 	if err != nil {
 		// print the error and not close the watcher
 		fmt.Printf("Error %v \n %s", err, errBuf.String())
 	}
+
+	// print output of mainFile
 	fmt.Println(out.String())
 }
 
+// watching each folder in dirList
+// for go file changes and run mainFile
 func watchFiles(mainFile string, dirList []string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -34,18 +42,23 @@ func watchFiles(mainFile string, dirList []string) {
 
 	defer watcher.Close()
 
+	// make it wait for the go routine
 	done := make(chan bool)
 
+	// handler for events from the watcher
 	go func() {
 		for {
 			select {
 			case event := <-watcher.Events:
+				// write operation
 				if event.Op&fsnotify.Write == fsnotify.Write {
+					fileName := event.Name
 
-					fileExt := event.Name[len(event.Name)-3:]
+					// get file extension
+					fileExt := event.Name[len(fileName)-3:]
 
 					if fileExt == ".go" {
-						log.Printf("%s changed \n", event.Name)
+						log.Printf("%s changed \n", fileName)
 						log.Printf("running %s \n", mainFile)
 						runMainFile(mainFile)
 					}
@@ -57,6 +70,7 @@ func watchFiles(mainFile string, dirList []string) {
 		}
 	}()
 
+	// watch each dir
 	for _, dir := range dirList {
 		err = watcher.Add(dir)
 		if err != nil {
@@ -64,10 +78,12 @@ func watchFiles(mainFile string, dirList []string) {
 		}
 	}
 
+	// waiting
 	<-done
 }
 
 func startRecursiveWatcher(watchDir, mainFile string) {
+	// to make watcher watch go files in current directory
 	initDir := []string{"."}
 	dirs := getAllDirs(watchDir, initDir)
 	watchFiles(mainFile, dirs)
