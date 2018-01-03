@@ -28,7 +28,7 @@ func runMainFile(mainFile string) {
 	fmt.Println(out.String())
 }
 
-func watchAllFiles(mainFile string, dirList []string) {
+func watchFiles(mainFile string, dirList []string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +98,7 @@ func getAllDirs(currentDir string, dirList []string) []string {
 
 func startRecursiveWatcher(watchDir, mainFile string) {
 	dirs := getAllDirs(watchDir, []string{})
-	watchAllFiles(mainFile, dirs)
+	watchFiles(mainFile, dirs)
 }
 
 func main() {
@@ -111,6 +111,6 @@ func main() {
 	if *recursiveFlag {
 		startRecursiveWatcher(args[1], args[2])
 	} else {
-		watchAllFiles(args[1], []string{args[0]})
+		watchFiles(args[1], []string{args[0]})
 	}
 }
